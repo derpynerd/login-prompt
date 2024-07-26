@@ -1,7 +1,10 @@
 # Login Prompt 
 
+## Setup -
+- Code::Blocks with mingw
+
 ## Progress so far - 
-- Window-specific handling
+- Window-specific event handling
 - Basic UI for login
 
 ## Goals -
