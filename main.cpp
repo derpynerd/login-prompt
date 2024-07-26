@@ -23,15 +23,15 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int nCmdSho
 {
     LPCSTR CLASS_NAME = "parentWindow"; // instance name
 
-    WNDCLASS wc = {0}; // initialize all values to 0
-    wc.hbrBackground    = (HBRUSH)COLOR_WINDOW;
-    wc.hCursor          = LoadCursor(NULL, IDC_ARROW);
-    wc.hIcon            = LoadIcon(NULL, IDI_QUESTION);
-    wc.hInstance        = hInst;
-    wc.lpszClassName    = CLASS_NAME;
-    wc.lpfnWndProc      = WindowProc;
+    WNDCLASS wc = {0};                                  // initialize all values to 0
+    wc.hbrBackground    = (HBRUSH)COLOR_WINDOW;         // window background
+    wc.hCursor          = LoadCursor(NULL, IDC_ARROW);  // cursor look inside window
+    wc.hIcon            = LoadIcon(NULL, IDI_QUESTION); // window icon = question mark
+    wc.hInstance        = hInst;                        // window instance = received instance from OS
+    wc.lpszClassName    = CLASS_NAME;                   // class name = instance name
+    wc.lpfnWndProc      = WindowProc;                   // window procedure = callback to WindowProc
 
-    if (!RegisterClass(&wc))
+    if (!RegisterClass(&wc)) // register window class - true/false
     {
         return -1;
     }
@@ -39,10 +39,10 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int nCmdSho
     CreateWindow(CLASS_NAME, "Login Prompt",        // window class name, window title
                 WS_VISIBLE | WS_OVERLAPPEDWINDOW,   // style
                 100, 100, 400, 250,                 // x & y origin, window width & height
-                NULL, NULL, NULL, NULL
+                NULL, NULL, NULL, NULL              // parent window so set all as null
                 );
 
-    MSG msg = {0};
+    MSG msg = {0}; // initialize message obj to 0
     while (GetMessage(&msg, NULL, NULL, NULL)) // event loop
     {
         TranslateMessage(&msg);
@@ -65,8 +65,8 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     switch(msg)
     {
     case WM_CREATE: // message sent when window is initially created
-        AddMenus(hWnd);
-        AddControls(hWnd);
+        AddMenus(hWnd);     // setup title bar (menus)
+        AddControls(hWnd);  // setup window display (controls)
         break;
     case WM_COMMAND:
         switch(wParam)
@@ -86,7 +86,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         return DefWindowProc(hWnd, msg, wParam, lParam); // handle default messages
     }
 
-    return DefWindowProc(hWnd, msg, wParam, lParam);
+    return DefWindowProc(hWnd, msg, wParam, lParam); // default exit value
 }
 
 void AddMenus(HWND hWnd)
