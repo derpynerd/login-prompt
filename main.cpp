@@ -5,14 +5,14 @@
 #define CHECKBOX_REMEMBER_ME 102
 
 LRESULT CALLBACK WindowProc(HWND, UINT, WPARAM, LPARAM);
-
-void Setup();
+void Setup(HINSTANCE);
 void CreateMenuBar(HWND);
 void CreateLoginPrompt(HWND);
 void HandleCommandEvents(HWND, WPARAM);
 
-HMENU hMenu; // global main menu bar
-HWND hEditUsername, hEditPassword, hButtonSubmit, hButtonRememberMe; // global handlers
+HINSTANCE hInstance; // current instance
+HMENU hMenu; // main menu bar
+HWND hEditUsername, hEditPassword, hButtonSubmit, hButtonRememberMe; // login prompt handlers
 bool isRememberMeChecked = false;
 
 /*
@@ -26,7 +26,7 @@ bool isRememberMeChecked = false;
 */
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int nCmdShow)
 {
-    Setup();
+    Setup(hInst);
 
     LPCSTR CLASS_NAME = "parentWindow"; // instance name
 
@@ -57,14 +57,17 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int nCmdSho
         DispatchMessage(&msg); // dispatch message to WindowProc (window procedure)
     }
 
+    UnregisterClass(CLASS_NAME, hInst);
     return (int) msg.wParam;
 }
 
 /*
 // Setup() - inital setup
 */
-void Setup()
+void Setup(HINSTANCE hInst)
 {
+    hInst = hInstance; // Store instance handle in our global variable
+
     FreeConsole(); // detach process from console (kills console)
     //ShowWindow(GetConsoleWindow(), SW_HIDE); // hide console window
 }
@@ -77,9 +80,9 @@ void Setup()
 // wParam - menu item id is passed via wParam
 // lParam -
 */
-LRESULT CALLBACK WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    switch(msg)
+    switch(message)
     {
     case WM_CREATE: // message sent when window is initially created
         CreateMenuBar(hWnd);     // setup title bar (menus)
@@ -92,41 +95,10 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         PostQuitMessage(0); // sends WM_QUIT message via event loop
         break;
     default:
-        return DefWindowProc(hWnd, msg, wParam, lParam); // handle default messages
+        return DefWindowProc(hWnd, message, wParam, lParam); // default exit value
     }
 
-    return DefWindowProc(hWnd, msg, wParam, lParam); // default exit value
-}
-
-/*
-// HandleCommandEvents() - handle all possible command events
-//
-// 1. help menu handling
-// 2. remember me checkbox handling
-*/
-void HandleCommandEvents(HWND hWnd, WPARAM wParam)
-{
-        switch(wParam)
-        {
-        case HELP_MENU_ABOUT: // handle "about" menu
-            //ShowWindow(hWnd, SW_HIDE);
-            break;
-        case HELP_MENU_EXIT:
-            DestroyWindow(hWnd); // sends WM_DESTROY message via event loop
-            break;
-        case CHECKBOX_REMEMBER_ME:
-            if (IsDlgButtonChecked(hWnd, CHECKBOX_REMEMBER_ME))
-            {
-                CheckDlgButton(hWnd, CHECKBOX_REMEMBER_ME, BST_UNCHECKED);
-                isRememberMeChecked = false;
-            }
-            else
-            {
-                CheckDlgButton(hWnd, CHECKBOX_REMEMBER_ME, BST_CHECKED);
-                isRememberMeChecked = true;
-            }
-            break;
-        }
+    return 0;
 }
 
 /*
@@ -198,3 +170,35 @@ void CreateLoginPrompt(HWND hWnd)
                                      hWnd, (HMENU) CHECKBOX_REMEMBER_ME, NULL, NULL     // parent handler
                                      );
 }
+
+/*
+// HandleCommandEvents() - handle all possible command events
+//
+// 1. help menu handling
+// 2. remember me checkbox handling
+*/
+void HandleCommandEvents(HWND hWnd, WPARAM wParam)
+{
+        switch(wParam)
+        {
+        case HELP_MENU_ABOUT: // handle "about" menu
+            // -------------- //
+            break;
+        case HELP_MENU_EXIT:
+            DestroyWindow(hWnd); // sends WM_DESTROY message via event loop
+            break;
+        case CHECKBOX_REMEMBER_ME:
+            if (IsDlgButtonChecked(hWnd, CHECKBOX_REMEMBER_ME))
+            {
+                CheckDlgButton(hWnd, CHECKBOX_REMEMBER_ME, BST_UNCHECKED);
+                isRememberMeChecked = false;
+            }
+            else
+            {
+                CheckDlgButton(hWnd, CHECKBOX_REMEMBER_ME, BST_CHECKED);
+                isRememberMeChecked = true;
+            }
+            break;
+        }
+}
+
