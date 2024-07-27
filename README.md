@@ -1,11 +1,15 @@
-# Login Prompt 
+# Login Prompt
 
-## Setup -
+## My Setup -
 - Code::Blocks with mingw
 
-## Progress so far - 
+## Progress so far -
 - Window-specific event handling
 - Basic UI for login
+- Submit button handling
+
+## Todo -
+- Fix username & password validation
 
 ## Goals -
 - Handle all scenarios & edge-cases

@@ -1,14 +1,19 @@
 #include <windows.h>
+#include <string>
+
+#define TEXT_WORD 100
 
 #define HELP_MENU_ABOUT 100
 #define HELP_MENU_EXIT 101
-#define CHECKBOX_REMEMBER_ME 102
+#define BUTTON_SUBMIT 102
+#define CHECKBOX_REMEMBER_ME 103
 
 LRESULT CALLBACK WindowProc(HWND, UINT, WPARAM, LPARAM);
 void Setup(HINSTANCE);
 void CreateMenuBar(HWND);
 void CreateLoginPrompt(HWND);
 void HandleCommandEvents(HWND, WPARAM);
+bool ValidateLogin(HWND);
 
 HINSTANCE hInstance; // current instance
 HMENU hMenu; // main menu bar
@@ -69,7 +74,6 @@ void Setup(HINSTANCE hInst)
     hInst = hInstance; // Store instance handle in our global variable
 
     FreeConsole(); // detach process from console (kills console)
-    //ShowWindow(GetConsoleWindow(), SW_HIDE); // hide console window
 }
 
 /*
@@ -147,7 +151,7 @@ void CreateLoginPrompt(HWND hWnd)
                 );
 
     CreateWindow("Static", "Password: ",    // static text, window label
-                  WS_VISIBLE | WS_CHILD,    // specify it as a child style
+                  WS_VISIBLE | WS_CHILD | ES_PASSWORD,    // specify it as a child style
                   75, 230, 125, 25,          // x & y with respect to parent window, child window width & height
                   hWnd, NULL, NULL, NULL    // parent handler
                 );
@@ -158,10 +162,10 @@ void CreateLoginPrompt(HWND hWnd)
                   hWnd, NULL, NULL, NULL                                 // parent handler
                 );
 
-    hButtonSubmit = CreateWindow("Button", "Submit",    // button, button label
-                 WS_VISIBLE | WS_CHILD,                 // child window
-                 225, 265, 50, 25,                      // x & y with respect to parent window, child window width & height
-                 hWnd, NULL, NULL, NULL                 // parent handler
+    hButtonSubmit = CreateWindow("Button", "Submit",        // button, button label
+                 WS_VISIBLE | WS_CHILD,                     // child window
+                 225, 265, 50, 25,                          // x & y with respect to parent window, child window width & height
+                 hWnd, (HMENU) BUTTON_SUBMIT, NULL, NULL    // parent handler
                  );
 
     hButtonRememberMe = CreateWindow("Button", "Remember me",                           // button, button label
@@ -187,6 +191,16 @@ void HandleCommandEvents(HWND hWnd, WPARAM wParam)
         case HELP_MENU_EXIT:
             DestroyWindow(hWnd); // sends WM_DESTROY message via event loop
             break;
+        case BUTTON_SUBMIT:
+            if(ValidateLogin(hWnd))
+            {
+                MessageBox(hWnd, "Welcome", "Valid Credentials", NULL); // placeholder for debugging
+            }
+            else
+            {
+                MessageBox(hWnd, "Incorrect Username or Password", "Invalid Credentials", NULL);
+            }
+            break;
         case CHECKBOX_REMEMBER_ME:
             if (IsDlgButtonChecked(hWnd, CHECKBOX_REMEMBER_ME))
             {
@@ -200,5 +214,25 @@ void HandleCommandEvents(HWND hWnd, WPARAM wParam)
             }
             break;
         }
+}
+
+
+// TODO - FIX THIS //
+bool ValidateLogin(HWND hWnd) {
+
+    int usernameLength = GetWindowTextLength(hEditUsername) + 1;
+    int passwordLength = GetWindowTextLength(hEditPassword) + 1;
+
+    std::string validUsername, validPassword;
+    validUsername.reserve(usernameLength);
+    validPassword.reserve(passwordLength);
+
+    GetWindowText(hEditUsername, const_cast<char*>(validUsername.c_str()), usernameLength - 1);
+    GetWindowText(hEditPassword, const_cast<char*>(validPassword.c_str()), passwordLength - 1);
+
+    if (!validUsername.compare("user") && !validPassword.compare("pass")) // Note - DOESN'T WORK
+        return true;
+
+    return false;
 }
 
