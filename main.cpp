@@ -1,17 +1,22 @@
 #include <windows.h>
 
-#define HELP_MENU_NEW 100
+#define HELP_MENU_ABOUT 100
 #define HELP_MENU_EXIT 101
+#define CHECKBOX_REMEMBER_ME 102
 
 LRESULT CALLBACK WindowProc(HWND, UINT, WPARAM, LPARAM);
-void AddMenus(HWND);
-void AddControls(HWND);
+
+void Setup();
+void CreateMenuBar(HWND);
+void CreateLoginPrompt(HWND);
+void HandleCommandEvents(HWND, WPARAM);
 
 HMENU hMenu; // global main menu bar
-HWND hEditUsername, hEditPassword, hButtonSubmit; // global handlers
+HWND hEditUsername, hEditPassword, hButtonSubmit, hButtonRememberMe; // global handlers
+bool isRememberMeChecked = false;
 
 /*
-// WinMain - main() function for win32 applications
+// WinMain() - main() function for win32 applications
 // called by OS when running program
 //
 // hInst - window instance received from OS
@@ -21,10 +26,12 @@ HWND hEditUsername, hEditPassword, hButtonSubmit; // global handlers
 */
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int nCmdShow)
 {
+    Setup();
+
     LPCSTR CLASS_NAME = "parentWindow"; // instance name
 
     WNDCLASS wc = {0};                                  // initialize all values to 0
-    wc.hbrBackground    = (HBRUSH)COLOR_WINDOW;         // window background
+    wc.hbrBackground    = (HBRUSH)(COLOR_WINDOW);       // window background
     wc.hCursor          = LoadCursor(NULL, IDC_ARROW);  // cursor look inside window
     wc.hIcon            = LoadIcon(NULL, IDI_QUESTION); // window icon = question mark
     wc.hInstance        = hInst;                        // window instance = received instance from OS
@@ -33,12 +40,13 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int nCmdSho
 
     if (!RegisterClass(&wc)) // register window class - true/false
     {
+        MessageBox(NULL, "Unable to RegisterClass", "Login Prompt", NULL);
         return -1;
     }
 
     CreateWindow(CLASS_NAME, "Login Prompt",        // window class name, window title
                 WS_VISIBLE | WS_OVERLAPPEDWINDOW,   // style
-                100, 100, 400, 250,                 // x & y origin, window width & height
+                575, 215, 400, 400,                 // x & y origin, window width & height
                 NULL, NULL, NULL, NULL              // parent window so set all as null
                 );
 
@@ -49,11 +57,20 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int nCmdSho
         DispatchMessage(&msg); // dispatch message to WindowProc (window procedure)
     }
 
-    return 0;
+    return (int) msg.wParam;
 }
 
 /*
-// WindowProc - handles all messages sent from event loop
+// Setup() - inital setup
+*/
+void Setup()
+{
+    FreeConsole(); // detach process from console (kills console)
+    //ShowWindow(GetConsoleWindow(), SW_HIDE); // hide console window
+}
+
+/*
+// WindowProc() - handles all messages sent from event loop
 //
 // hWnd - window handler
 // msg - message passed from event loop
@@ -65,22 +82,14 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     switch(msg)
     {
     case WM_CREATE: // message sent when window is initially created
-        AddMenus(hWnd);     // setup title bar (menus)
-        AddControls(hWnd);  // setup window display (controls)
+        CreateMenuBar(hWnd);     // setup title bar (menus)
+        CreateLoginPrompt(hWnd);  // setup window display (controls)
         break;
     case WM_COMMAND:
-        switch(wParam)
-        {
-        case HELP_MENU_NEW:
-            MessageBeep(MB_OK);
-            break;
-        case HELP_MENU_EXIT:
-            DestroyWindow(hWnd); // sends WM_DESTROY message via event loop
-            break;
-        }
+        HandleCommandEvents(hWnd, wParam);
         break;
     case WM_DESTROY:
-        PostQuitMessage(0); // returns false to GetMessage() to end event loop
+        PostQuitMessage(0); // sends WM_QUIT message via event loop
         break;
     default:
         return DefWindowProc(hWnd, msg, wParam, lParam); // handle default messages
@@ -89,12 +98,52 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     return DefWindowProc(hWnd, msg, wParam, lParam); // default exit value
 }
 
-void AddMenus(HWND hWnd)
+/*
+// HandleCommandEvents() - handle all possible command events
+//
+// 1. help menu handling
+// 2. remember me checkbox handling
+*/
+void HandleCommandEvents(HWND hWnd, WPARAM wParam)
+{
+        switch(wParam)
+        {
+        case HELP_MENU_ABOUT: // handle "about" menu
+            //ShowWindow(hWnd, SW_HIDE);
+            break;
+        case HELP_MENU_EXIT:
+            DestroyWindow(hWnd); // sends WM_DESTROY message via event loop
+            break;
+        case CHECKBOX_REMEMBER_ME:
+            if (IsDlgButtonChecked(hWnd, CHECKBOX_REMEMBER_ME))
+            {
+                CheckDlgButton(hWnd, CHECKBOX_REMEMBER_ME, BST_UNCHECKED);
+                isRememberMeChecked = false;
+            }
+            else
+            {
+                CheckDlgButton(hWnd, CHECKBOX_REMEMBER_ME, BST_CHECKED);
+                isRememberMeChecked = true;
+            }
+            break;
+        }
+}
+
+/*
+// CreateMenuBar() - create menu bar
+//
+// Help
+//  |
+// About
+// ----
+// Exit
+*/
+void CreateMenuBar(HWND hWnd)
 {
     hMenu = CreateMenu(); // returns empty menu instance
     HMENU hHelpMenu = CreateMenu();
 
-    AppendMenu(hHelpMenu, MF_STRING, HELP_MENU_NEW, "About");
+    AppendMenu(hHelpMenu, MF_STRING, HELP_MENU_ABOUT, "About");
     AppendMenu(hHelpMenu, MF_STRING, NULL, NULL);
     AppendMenu(hHelpMenu, MF_STRING, HELP_MENU_EXIT, "Exit");
 
@@ -103,37 +152,49 @@ void AddMenus(HWND hWnd)
     SetMenu(hWnd, hMenu); // specify handler to which menu is to be added
 }
 
-
-// controls are child windows of the parent window
-void AddControls(HWND hWnd)
+/*
+// CreateLoginPrompt() - create controls (child windows inside parent)
+//
+// Username: [                ]
+// Password: [                ]
+// []Remember me       [Submit]
+*/
+void CreateLoginPrompt(HWND hWnd)
 {
 
-    CreateWindow("Static", "Username: ",    // predefined class name - static text, window label
-                  WS_VISIBLE | WS_CHILD,    // style - specify it as a child style
-                  75, 50, 125, 25,          // x & y with respect to parent window, child instance width & height
+    CreateWindow("Static", "Username: ",    // static text, window label
+                  WS_VISIBLE | WS_CHILD,    // specify it as a child style
+                  75, 200, 125, 25,          // x & y with respect to parent window, child window width & height
                   hWnd, NULL, NULL, NULL    // parent handler
                 );
 
-    hEditUsername = CreateWindow("Edit", "",                            // predefined class name - edit box, box text
-                  WS_VISIBLE | WS_CHILD | WS_BORDER | ES_AUTOHSCROLL,   // style - specify it as a child style
-                  150, 50, 125, 25,                                     // x & y with respect to parent window, child instance width & height
+    hEditUsername = CreateWindow("Edit", "",                            // edit box, box text
+                  WS_VISIBLE | WS_CHILD | WS_BORDER | ES_AUTOHSCROLL,   // specify it as a child style
+                  150, 200, 125, 20,                                     // x & y with respect to parent window, child window width & height
                   hWnd, NULL, NULL, NULL                                // parent handler
                 );
 
-    CreateWindow("Static", "Password: ",    // predefined class name - static text, window label
-                  WS_VISIBLE | WS_CHILD,    // style - specify it as a child style
-                  75, 75, 125, 25,          // x & y with respect to parent window, child instance width & height
+    CreateWindow("Static", "Password: ",    // static text, window label
+                  WS_VISIBLE | WS_CHILD,    // specify it as a child style
+                  75, 230, 125, 25,          // x & y with respect to parent window, child window width & height
                   hWnd, NULL, NULL, NULL    // parent handler
                 );
 
-    hEditPassword = CreateWindow("Edit", "",                             // predefined class name - edit box, box text
-                  WS_VISIBLE | WS_CHILD | WS_BORDER | ES_AUTOHSCROLL,    // style - specify it as a child style
-                  150, 75, 125, 25,                                      // x & y with respect to parent window, child instance width & height
+    hEditPassword = CreateWindow("Edit", "",                             // edit box, box text
+                  WS_VISIBLE | WS_CHILD | WS_BORDER | ES_AUTOHSCROLL,    // child window
+                  150, 230, 125, 20,                                      // x & y with respect to parent window, child window width & height
                   hWnd, NULL, NULL, NULL                                 // parent handler
                 );
 
-    hButtonSubmit = CreateWindow("Button", "Submit",    // predefined class name - button, button label
-                 WS_VISIBLE | WS_CHILD,                 // style - specify it as a child style
-                 225, 110, 50, 25,                      // x & y with respect to parent window, child instance width & height
-                 hWnd, NULL, NULL, NULL);               // parent handler,
+    hButtonSubmit = CreateWindow("Button", "Submit",    // button, button label
+                 WS_VISIBLE | WS_CHILD,                 // child window
+                 225, 265, 50, 25,                      // x & y with respect to parent window, child window width & height
+                 hWnd, NULL, NULL, NULL                 // parent handler
+                 );
+
+    hButtonRememberMe = CreateWindow("Button", "Remember me",                           // button, button label
+                                     WS_VISIBLE | WS_CHILD | BS_CHECKBOX,               // child window, checkbox
+                                     75, 265, 120, 25,                                  // x & y with respect to parent window, child window width & height
+                                     hWnd, (HMENU) CHECKBOX_REMEMBER_ME, NULL, NULL     // parent handler
+                                     );
 }
